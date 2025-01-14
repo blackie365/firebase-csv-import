@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Members Directory</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #373832;
+            --text-color: #616161;
+            --background-color: #fafafa;
+            --card-background: #ffffff;
+            --card-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .header {
+            background-color: var(--background-color);
+            padding: 60px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-family: 'Lora', serif;
+            color: var(--primary-color);
+            font-size: 3em;
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        .members-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 40px;
+            padding: 40px 0;
+            margin: 0 auto;
+        }
+
+        .member-card {
+            background: var(--card-background);
+            border: none;
+            border-radius: 0;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .member-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .member-image {
+            width: 100%;
+            padding-top: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .member-image img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 0;
+        }
+
+        .member-info {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .member-name {
+            font-family: 'Lora', serif;
+            color: var(--primary-color);
+            font-size: 1.2em;
+            margin: 0 0 10px 0;
+            font-weight: 700;
+        }
+
+        .member-headline {
+            font-size: 0.9em;
+            color: var(--text-color);
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .member-location {
+            font-size: 0.85em;
+            color: #888;
+            margin-bottom: 15px;
+        }
+
+        .member-links {
+            margin-top: auto;
+            padding-top: 20px;
+        }
+
+        .member-links a {
+            display: inline-block;
+            padding: 8px 15px;
+            background-color: var(--background-color);
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 0.85em;
+            margin-right: 10px;
+            margin-bottom: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .member-links a:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .pagination {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .pagination button {
+            background-color: var(--card-background);
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 12px 25px;
+            margin: 0 5px;
+            cursor: pointer;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            display: inline-block;
+            margin: 0 15px;
+            color: var(--text-color);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: var(--text-color);
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                padding: 0 20px;
+            }
+            
+            .members-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 30px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .member-info {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Members Directory</h1>
+    </div>
+    <div class="container">
+        <div class="pagination">
+            <button onclick="loadMembers(currentOffset - pageSize)" id="prevBtn" disabled>Previous</button>
+            <span class="page-info" id="pageInfo">Page 1</span>
+            <button onclick="loadMembers(currentOffset + pageSize)" id="nextBtn">Next</button>
+        </div>
+        <div class="members-grid" id="membersList"></div>
+    </div>
+        <script>
+            const defaultAvatar = './default-avatar.jpg';
+            const apiUrl = 'https://api-ztcuzdsvjq-uc.a.run.app/api/members';
+            const pageSize = 12;
+            let currentOffset = 0;
+            let totalMembers = 0;
+        async function loadMembers(offset = 0) {
+            try {
+                const membersDiv = document.getElementById('membersList');
+                membersDiv.innerHTML = '<div class="loading">Loading...</div>';
+                
+                currentOffset = offset;
+                const response = await fetch(`${apiUrl}?limit=${pageSize}&offset=${offset}`);
+                const data = await response.json();
+                totalMembers = data.pagination.total;
+                
+                // Update pagination buttons
+                document.getElementById('prevBtn').disabled = offset === 0;
+                document.getElementById('nextBtn').disabled = !data.pagination.hasMore;
+                document.getElementById('pageInfo').textContent = 
+                    `Showing ${offset + 1} - ${offset + data.members.length} of ${totalMembers}`;
+
+                // Clear and populate members list
+                membersDiv.innerHTML = '';
+                data.members.forEach(member => {
+                    const memberHtml = `
+                        <div class="member-card">
+                            <div class="member-image">
+                                <img src="${member.avatarUrl || defaultAvatar}" 
+                                    alt="${member.firstName} ${member.lastName}"
+                                    onerror="this.src=defaultAvatar">
+                            </div>
+                            <div class="member-info">
+                                <h2 class="member-name">${member.firstName} ${member.lastName}</h2>
+                                <div class="member-headline">${member.headline || 'Member'}</div>
+                                <div class="member-location">${member.location || 'Yorkshire'}</div>
+                                <div class="member-links">
+                                    ${member.linkedinUrl ? `<a href="${member.linkedinUrl}" target="_blank">LinkedIn</a>` : ''}
+                                    ${member.websiteUrl ? `<a href="${member.websiteUrl}" target="_blank">Website</a>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    membersDiv.insertAdjacentHTML('beforeend', memberHtml);
+                });
+            } catch (error) {
+                console.error('Error loading members:', error);
+                membersDiv.innerHTML = '<div class="error">Error loading members. Please try again later.</div>';
+            }
+        }
+
+        // Initial load
+        loadMembers();
+    </script>
+</body>
+</html>
+

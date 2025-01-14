@@ -1,0 +1,18 @@
+{
+  "name": "firebase-csv-import",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^3.2.6",
+    "csv-parse": "^5.6.0",
+    "firebase-admin": "^13.0.2",
+    "json2csv": "^6.0.0-alpha.2"
+  },
+  "description": ""
+}
