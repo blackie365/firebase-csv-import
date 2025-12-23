@@ -156,7 +156,7 @@ app.get("/api/members", validateMembersQuery, async (req, res, next) => {
             sortOrder: validSortOrder,
         });
 
-        let query = db.collection("members");
+        query = db.collection("members");
         logger.info("Collection reference created");
 
         if (active !== undefined) {
@@ -246,21 +246,6 @@ app.get("/api/members", validateMembersQuery, async (req, res, next) => {
             },
             timestamp: new Date().toISOString()
         });
-        }
-
-        return res.json({
-            success: true,
-            data: {
-                members,
-                pagination: {
-                    total,
-                    limit: parseInt(limit),
-                    offset: parseInt(offset),
-                    hasMore: total > parseInt(offset) + members.length,
-                }
-            },
-            timestamp: new Date().toISOString()
-        });
     } catch (error) {
         logger.error("Operation failed", { 
             message: error?.message,
@@ -268,6 +253,20 @@ app.get("/api/members", validateMembersQuery, async (req, res, next) => {
             code: error?.code,
             stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
         });
+
+        // Treat Firestore/database errors as a 503 so callers can retry
+        const message = (error?.message || '').toLowerCase();
+        if (message.includes('database') || message.includes('firestore')) {
+            return res.status(503).json({
+                success: false,
+                error: {
+                    message: 'Service temporarily unavailable',
+                    status: 503,
+                    details: 'Database operation failed'
+                }
+            });
+        }
+
         if (error?.name === 'ValidationError') {
             return res.status(400).json({
                 success: false,
@@ -277,6 +276,7 @@ app.get("/api/members", validateMembersQuery, async (req, res, next) => {
                 }
             });
         }
+
         return next(error);
     } finally {
         await cleanup(query);

@@ -47,11 +47,15 @@ const createQueryObject = (options = {}) => {
     };
 
     const {
-        docs = [mockDoc],
-        empty = false,
-        size = 1,
+        docs: inputDocs,
+        empty: inputEmpty,
+        size: inputSize,
         error = null
     } = options;
+
+    const docs = inputDocs ?? [mockDoc];
+    const size = inputSize ?? docs.length;
+    const empty = inputEmpty ?? (docs.length === 0);
 
     return {
         limit: jest.fn().mockReturnThis(),
@@ -62,35 +66,32 @@ const createQueryObject = (options = {}) => {
             if (error) {
                 return Promise.reject(error);
             }
-            return Promise.resolve({
+
+            const snapshot = {
                 docs,
                 empty,
-                size
-            });
+                size,
+                forEach: (callback) => docs.forEach(callback)
+            };
+
+            return Promise.resolve(snapshot);
+        }),
+        getCountFromServer: jest.fn().mockResolvedValue({
+            data: () => ({ count: size })
         })
     };
 };
 
-// Mock Firebase Admin
-jest.mock('firebase-admin', () => ({
-    initializeApp: jest.fn(),
-    firestore: () => ({
-        collection: jest.fn()
-    })
-}));
-
-describe('GET /api/members', () => describe('GET /api/members', () => {
+describe('GET /api/members', () => {
     let server;
     let agent;
     let firestore;
-    let membersRef;
     let queryObject;
 
     beforeAll(() => {
         server = app.listen(0);
         agent = request.agent(server);
         firestore = admin.firestore();
-        membersRef = firestore.collection('members');
     });
 
     afterAll(async () => {
@@ -99,7 +100,8 @@ describe('GET /api/members', () => describe('GET /api/members', () => {
 
     beforeEach(() => {
         queryObject = createQueryObject();
-        membersRef.where.mockReturnValue(queryObject);
+        // Make the API use our queryObject when it calls db.collection('members')
+        firestore.collection.mockReturnValue(queryObject);
     });
 
     it('should return members list with pagination', async () => {
@@ -143,7 +145,7 @@ describe('GET /api/members', () => describe('GET /api/members', () => {
 
     it('should handle empty results', async () => {
         queryObject = createQueryObject({ empty: true, docs: [] });
-        membersRef.where.mockReturnValue(queryObject);
+        firestore.collection.mockReturnValue(queryObject);
         
         const response = await agent.get('/api/members');
         expect(response.status).toBe(200);
@@ -161,77 +163,7 @@ describe('GET /api/members', () => describe('GET /api/members', () => {
         queryObject = createQueryObject({
             error: new Error('Database connection failed')
         });
-        membersRef.where.mockReturnValue(queryObject);
-        
-        const response = await agent.get('/api/members');
-        expect(response.status).toBe(503);
-        expect(response.body.success).toBe(false);
-        expect(response.body.error).toEqual({
-            message: 'Service temporarily unavailable',
-            status: 503,
-            details: 'Database operation failed'
-        });
-    });
-});
-        const response = await agent.get('/api/members?page=1&limit=10');
-        expect(response.status).toBe(200);
-        expect(response.body.success).toBe(true);
-        expect(response.body).toHaveProperty('data');
-        expect(response.body.data).toHaveProperty('members');
-        expect(response.body.data).toHaveProperty('pagination');
-        expect(response.body.data.pagination).toEqual({
-            total: 1,
-            limit: 10,
-            offset: 0,
-            hasMore: false
-        });
-        expect(response.body.data.members[0]).toMatchObject({
-            id: 'doc1',
-            firstName: 'John',
-            lastName: 'Doe',
-            email: 'john@example.com'
-        });
-    })
-    });
-
-    it('should handle search parameter correctly', async () => {
-        const response = await agent.get('/api/members?search=john');
-        expect(response.status).toBe(200);
-        expect(queryObject.where).toHaveBeenCalledWith('searchName', '>=', 'john');
-    });
-
-    it('should handle invalid page parameter', async () => {
-        const response = await agent.get('/api/members?page=invalid');
-        expect(response.status).toBe(400);
-        expect(response.body.success).toBe(false);
-        expect(response.body.error).toEqual({
-            message: 'Invalid request parameters',
-            status: 400,
-            details: expect.any(Array)
-        });
-    });
-
-    it('should handle empty results', async () => {
-        queryObject = createQueryObject({ empty: true, docs: [] });
-        membersRef.where.mockReturnValue(queryObject);
-        
-        const response = await agent.get('/api/members');
-        expect(response.status).toBe(200);
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.members).toHaveLength(0);
-        expect(response.body.data.pagination).toEqual({
-            total: 0,
-            limit: 10,
-            offset: 0,
-            hasMore: false
-        });
-    });
-
-    it('should handle database errors', async () => {
-        queryObject = createQueryObject({
-            error: new Error('Database connection failed')
-        });
-        membersRef.where.mockReturnValue(queryObject);
+        firestore.collection.mockReturnValue(queryObject);
         
         const response = await agent.get('/api/members');
         expect(response.status).toBe(503);
