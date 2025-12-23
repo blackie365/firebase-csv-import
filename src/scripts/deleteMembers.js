@@ -1,5 +1,9 @@
+/**
+* @fileoverview Script to delete all members from Firebase
+*/
+
 const admin = require('firebase-admin');
-const serviceAccount = require('./serviceAccountKey.json');
+const { initializeFirebase } = require('../services/firebase');
 
 // Initialize Firebase Admin
 admin.initializeApp({

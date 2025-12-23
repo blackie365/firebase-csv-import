@@ -72,3 +72,8 @@ members*.json
 serviceAccountKey.json
 members*.csv
 members*.json
+
+# Firestore export / audience list data (keep out of GitHub)
+*_export_*.csv
+*_export_*.json
+*audience_list*.csv

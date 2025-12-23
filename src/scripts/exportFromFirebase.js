@@ -1,24 +1,32 @@
+/**
+* @fileoverview Export collection data from Firebase to JSON/CSV
+*/
+
 const admin = require('firebase-admin');
 const fs = require('fs');
 const { Parser } = require('json2csv');
 
+// Use the YBW app service account key so exports come from the same project
+const serviceAccount = require('../../../squarebaseApp/serviceAccountKey.json');
+
 // Initialize Firebase Admin
-try {
-    const serviceAccount = require('./serviceAccountKey.json');
+if (!admin.apps || !admin.apps.length) {
+  try {
     admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
+      credential: admin.credential.cert(serviceAccount),
     });
-} catch (error) {
+  } catch (error) {
     console.error('Error initializing Firebase:', error.message);
     process.exit(1);
+  }
 }
 
 const db = admin.firestore();
 
 // Check command line arguments
-if (process.argv.length !== 3) {
-    console.error('Usage: node exportFromFirebase.js <collection-name>');
-    process.exit(1);
+if (process.argv.length < 3) {
+  console.error('Usage: node exportFromFirebase.js <collection-name>');
+  process.exit(1);
 }
 
 const collectionName = process.argv[2];

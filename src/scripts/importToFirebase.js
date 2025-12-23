@@ -1,6 +1,10 @@
+/**
+* @fileoverview Import members data from JSON to Firebase
+*/
+
 const admin = require('firebase-admin');
 const fs = require('fs');
-const serviceAccount = require('./serviceAccountKey.json');
+const { initializeFirebase } = require('../services/firebase');
 
 // Initialize Firebase Admin
 admin.initializeApp({

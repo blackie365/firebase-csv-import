@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+match /databases/{database}/documents {
+    // Function to check if the user has admin privileges
+    function isAdmin() {
+    return request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Rules for the members collection
+    match /members/{memberId} {
+    // Allow public read access to all member documents
+    allow read: if true;
+
+    // Allow write operations only for admin users
+    allow create: if isAdmin() && validateMemberData();
+    allow update: if isAdmin() && validateMemberData();
+    allow delete: if isAdmin();
+
+    // Function to validate member document data
+    function validateMemberData() {
+        let incomingData = request.resource.data;
+        
+        // Check required fields exist and have correct types
+        return 
+        // Required fields must be present
+        incomingData.keys().hasAll(['name', 'email']) &&
+        
+        // Validate data types
+        incomingData.name is string &&
+        incomingData.name.size() > 0 &&
+        incomingData.email is string &&
+        incomingData.email.matches('^[^@]+@[^@]+\\.[^@]+$');
+    }
+    }
+
+    // Deny access to all other collections by default
+    match /{document=**} {
+    allow read, write: if false;
+    }
+}
+}
+
